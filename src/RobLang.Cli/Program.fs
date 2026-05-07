@@ -4,7 +4,7 @@ module RobLang.Cli.Main
 let main argv =
     match argv with
     | [| file |] ->
-        RobLang.hello file
+        printfn "%s" file
         0
     | _ ->
         eprintfn "Usage: roblang <file>"

@@ -22,12 +22,32 @@
           inherit dotnet-sdk dotnet-runtime;
         };
 
-        roblang = pkgs.buildDotnetModule (commonDotnetArgs // {
-          pname = "roblang";
+        roblang-ast = pkgs.buildDotnetModule (commonDotnetArgs // {
+          pname = "roblang-ast";
           version = "0.1.0";
-          projectFile = "src/RobLang/RobLang.fsproj";
+          projectFile = "src/RobLang.AST/RobLang.AST.fsproj";
           meta = with pkgs.lib; {
-            description = "RobLang compiler library";
+            description = "RobLang AST library";
+            license = licenses.mit;
+          };
+        });
+        
+        roblang-parser = pkgs.buildDotnetModule (commonDotnetArgs // {
+          pname = "roblang-parser";
+          version = "0.1.0";
+          projectFile = "src/RobLang.Parser/RobLang.Parser.fsproj";
+          meta = with pkgs.lib; {
+            description = "RobLang parser library";
+            license = licenses.mit;
+          };
+        });
+
+        roblang-runtime = pkgs.buildDotnetModule (commonDotnetArgs // {
+          pname = "roblang-runtime";
+          version = "0.1.0";
+          projectFile = "src/RobLang.Runtime/RobLang.Runtime.fsproj";
+          meta = with pkgs.lib; {
+            description = "RobLang runtime library";
             license = licenses.mit;
           };
         });
@@ -47,7 +67,7 @@
       {
         packages = {
           default = roblang-cli;
-          inherit roblang roblang-cli;
+          inherit roblang-cli;
         };
 
         apps.default = {
@@ -56,7 +76,9 @@
         };
 
         checks = {
-          build-lib = roblang;
+          build-ast = roblang-ast;
+          build-parser = roblang-parser;
+          build-runtime = roblang-runtime;
           build-cli = roblang-cli;
 
           formatting = pkgs.runCommand "check-fmt" {
