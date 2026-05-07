@@ -1,0 +1,22 @@
+# Nix
+result
+result-*
+.direnv/
+
+# dotnet build outputs
+obj/
+bin/
+
+# NuGet local cache (kept local via NUGET_PACKAGES in dev shell)
+.nuget/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+
+# OS
+.DS_Store
+Thumbs.db
