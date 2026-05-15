@@ -1,5 +1,6 @@
 ﻿namespace RobLang.Runtime
 
 module Say =
-    let hello name =
-        printfn "Hello %s" name
+  let hello name =
+    printfn "Hello %s" name
+
