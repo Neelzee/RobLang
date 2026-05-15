@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RobLang.Parser\RobLang.Parser.fsproj" />
+    <ProjectReference Include="..\RobLang.Runtime\RobLang.Runtime.fsproj" />
   </ItemGroup>
 
 </Project>
