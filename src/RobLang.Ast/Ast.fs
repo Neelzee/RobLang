@@ -16,6 +16,7 @@ type BinOp =
   | Mod
 
 type Expr =
+  | Null
   | Int of int
   | Float of float
   | Bool of bool
@@ -33,13 +34,15 @@ and Op =
   | Affix of Expr * Affix 
   | Infix of Expr * BinOp * Expr
 
+type Param = string * Expr option
+
 type Stmt =
   | VarDecl of string * Expr
   | If of Expr * Block
   | While of Expr * Block
   | IfElse of Expr * Block * Block
   | For of string * Expr * Block
-  | FnDecl of string * ((string * Expr option) list) * Block
+  | FnDecl of string * Param list * Block
   | FnCall of string * Expr list
   | Break
   | Return of Expr option
