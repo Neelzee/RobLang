@@ -11,12 +11,16 @@ type ScopeKind =
   | OuterScope
 
 type SymbolTableError =
+  | ParseError of string
   | VarShadowing of string
   | MissingVariableDeclaration of string
   | MissingFunctionDeclaration of string
   | MissingArgument of string
   | InvalidUseOfBreakStmt
   | InvalidUseOfReturnStmt
+
+let fromParseError (msg : string) : SymbolTableError =
+  ParseError msg
 
 let rec checkExpr
   (expr : Expr)
@@ -151,7 +155,17 @@ let rec checkStmt
     else
       Error InvalidUseOfReturnStmt
  
-let buildSymbolTable (program : Program) : Result<SymbolTable, SymbolTableError> =
-  List.fold (fun st cur ->
-    Result.bind (fun st' -> checkStmt [OuterScope] st' cur) st
-  ) (Ok mkSymbolTable) program
+let buildSymbolTable
+  (program : Program)
+  : Result<SymbolTable, SymbolTableError> =
+    List.fold (fun st cur ->
+      Result.bind (fun st' -> checkStmt [OuterScope] st' cur) st
+    ) (Ok mkSymbolTable) program
+
+let updateSymbolTable
+  (program : Program)
+  (st : SymbolTable)
+  : Result<SymbolTable, SymbolTableError> =
+    List.fold (fun st' cur ->
+      Result.bind (fun st' -> checkStmt [OuterScope] st' cur) st'
+    ) (Ok st) program

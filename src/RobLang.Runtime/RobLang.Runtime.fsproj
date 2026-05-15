@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="SymbolTable.fs" />
     <Compile Include="Analyzer/Semantic.fs" />
+    <Compile Include="Interpreter.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 
