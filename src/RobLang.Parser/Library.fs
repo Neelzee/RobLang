@@ -33,13 +33,13 @@ let ident: Parser<string, unit> =
   many1Chars2 letter (letter <|> digit)
 
 let varDeclRaw =
-  consumeSpaces letKw >>. ident
+  letKw >>. spaces1 >>. ident
   .>>.
-  (consumeSpaces assignmentKw >>. expr)
+  (spaces1 >>. assignmentKw >>. spaces1 >>. expr)
 
 let stmt, stmtRef = createParserForwardedToRef<Stmt, unit> ()
 
-let block : Parser<Block, unit> = many1(consumeSpaces stmt)
+let block : Parser<Block, unit> = many1 (consumeSpaces stmt)
 
 let varDecl: Parser<Stmt, unit> =
   varDeclRaw
@@ -92,6 +92,7 @@ do
   exprRef.Value <-
     choice [
       num;
+      fnCall;
       ident |>> Var;
       str;
       bool;
