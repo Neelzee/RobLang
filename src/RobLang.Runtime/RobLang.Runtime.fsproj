@@ -6,10 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="IHost.fs" />
     <Compile Include="SymbolTable.fs" />
     <Compile Include="Analyzer/Semantic.fs" />
+    <Compile Include="Prelude/Builtins.fs" />
     <Compile Include="Interpreter.fs" />
-    <Compile Include="Library.fs" />
   </ItemGroup>
 
   <ItemGroup>

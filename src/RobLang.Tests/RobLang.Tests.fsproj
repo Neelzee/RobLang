@@ -7,7 +7,11 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
-  <ItemGroup><Compile Include="HelloWorld.Tests.fs" />
+  <ItemGroup>
+    <Compile Include="HelloWorld.Tests.fs" />
+    <Compile Include="Parse.Tests.fs" />
+    <Compile Include="Eval.Tests.fs" />
+    <Compile Include="Cli.Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -19,10 +23,15 @@
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
   </ItemGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\RobLang.Ast\RobLang.Ast.fsproj" />
     <ProjectReference Include="..\RobLang.Parser\RobLang.Parser.fsproj" />
+    <ProjectReference Include="..\RobLang.Runtime\RobLang.Runtime.fsproj" />
+    <ProjectReference Include="..\RobLang.Cli\RobLang.Cli.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Example\*.rl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

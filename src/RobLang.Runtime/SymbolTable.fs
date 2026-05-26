@@ -2,43 +2,55 @@ module RobLang.Runtime.SymbolTable
 
 open RobLang.Ast
 
-type Params = Param list
+type FnBody =
+  | Interpreted of Block
+  | Native of string
 
-type SymbolTable = 
-  { outer : SymbolTable option
+type SymbolTable =
+  { outer     : SymbolTable option
   ; variables : Map<string, Expr>
-  ; functions : Map<string * Params, Block>
+  ; functions : Map<string, FnDef>
   }
 
-let mkSymbolTable : SymbolTable =
-  { outer = None; variables = Map.empty; functions = Map.empty }
+and FnDef =
+  { parameters : Param list
+  ; body       : FnBody
+  ; closure    : SymbolTable
+  }
+
+let rec mkSymbolTable : SymbolTable =
+  { outer     = None
+  ; variables = Map.empty
+  ; functions = Map.empty
+  }
 
 let mkSymbolTableInner (outer : SymbolTable) : SymbolTable =
   { mkSymbolTable with outer = Some outer }
 
 let addVariable (st : SymbolTable) (id : string) (expr : Expr) : SymbolTable =
-  { st with variables = st.variables.Add (id, expr) }
+  { st with variables = Map.add id expr st.variables }
 
 let removeVariable (st : SymbolTable) (id : string) : SymbolTable =
-  { st with variables = st.variables.Remove id }
+  { st with variables = Map.remove id st.variables }
 
 let rec lookupVariable (id : string) (st : SymbolTable) : Expr option =
   Map.tryFind id st.variables
   |> Option.orElseWith (fun () -> st.outer |> Option.bind (lookupVariable id))
 
-let addFunction (st : SymbolTable) (id : string * Params) (body : Block) : SymbolTable =
-  { st with functions = st.functions.Add (id, body) }
+// Walks the scope chain to mutate an existing binding. Returns None if not found.
+let rec setVariable (id : string) (value : Expr) (st : SymbolTable) : SymbolTable option =
+  if Map.containsKey id st.variables then
+    Some { st with variables = Map.add id value st.variables }
+  else
+    match st.outer with
+    | Some outer ->
+      setVariable id value outer
+      |> Option.map (fun outer' -> { st with outer = Some outer' })
+    | None -> None
 
-let rec lookupFunction (id : string * Params) (st : SymbolTable) : Block option =
-  Map.tryFind id st.functions
-  |> Option.orElseWith (fun () -> st.outer |> Option.bind (lookupFunction id))
+let addFunction (name : string) (def : FnDef) (st : SymbolTable) : SymbolTable =
+  { st with functions = Map.add name def st.functions }
 
-let rec lookupFunctionId
-  (id : string)
-  (st : SymbolTable)
-  : (Params * Block) option =
-  match Map.tryFindKey (fun (id', _) _ -> id' = id) st.functions with
-  | Some (id, parms) ->
-    lookupFunction (id, parms) st
-    |> Option.map (fun block -> parms, block)
-  | None -> None
+let rec lookupFunction (name : string) (st : SymbolTable) : FnDef option =
+  Map.tryFind name st.functions
+  |> Option.orElseWith (fun () -> st.outer |> Option.bind (lookupFunction name))

@@ -1,102 +1,112 @@
 module RobLang.Cli.Main
 
 open RobLang.Parser.Core
-open RobLang.Runtime.SymbolTable
-open Roblang.Runtime.Analyzer.Semantic
+open RobLang.Runtime.Analyzer.Semantic
+open RobLang.Runtime.Interpreter
+open RobLang.Runtime.IHost
+open RobLang.Ast
 
-let repl (st : SymbolTable) =
-  printfn "(:q to quit)"
-  RobLang.Runtime.Interpreter.repl st
+type CliHost() =
+  let mutable fields : Map<string, Expr> = Map.empty
 
-let replFlag =
-  "--repl"
+  interface IHost with
+    member _.Print msg =
+      printfn "%s" msg
+      Ok ()
+
+    member _.Get field =
+      match fields.TryGetValue field with
+      | true, v -> Ok v
+      | _       -> Ok Null
+
+    member _.Set field value =
+      fields <- Map.add field value fields
+      Ok ()
+
+    member _.Call method args =
+      printfn $"[host] {method}({args})"
+      Ok Null
+
+let replFlag = "--repl"
 
 type CliProgramPartial =
-  { replFlag : bool option
-  ; filePath : string option
+  { replFlag   : bool option
+  ; filePath   : string option
   ; outputPath : string option
   }
 
 let mkCliProgramPartial : CliProgramPartial =
-  { replFlag = None
-  ; filePath = None
+  { replFlag   = None
+  ; filePath   = None
   ; outputPath = None
   }
 
 type CliProgram =
-  { replFlag : bool
-  ; filePath : string option
+  { replFlag   : bool
+  ; filePath   : string option
   ; outputPath : string option
   }
 
 let fromCliProgramPartial (cpp : CliProgramPartial) : CliProgram =
-  { replFlag = Option.defaultValue false cpp.replFlag
-  ; filePath = cpp.filePath
+  { replFlag   = Option.defaultValue false cpp.replFlag
+  ; filePath   = cpp.filePath
   ; outputPath = cpp.outputPath
   }
 
 let mkCliProgram (xs : string array) : CliProgram =
-  let rec helper
-    (ys : string list)
-    (cpp : CliProgramPartial)
-    : CliProgramPartial =
-      match ys with
-      | [] -> cpp
-      | x :: xs when x = replFlag -> helper xs { cpp with replFlag = Some true }
-      | a :: b :: xs when a = "-i" -> helper xs { cpp with filePath = Some b }
-      | a :: b :: xs when a = "-o" -> helper xs { cpp with outputPath = Some b }
-      | x :: xs ->
-        eprintfn $"Unknown flag: {x}"
-        helper xs cpp
+  let rec helper (ys : string list) (cpp : CliProgramPartial) : CliProgramPartial =
+    match ys with
+    | [] -> cpp
+    | x :: rest when x = replFlag     -> helper rest { cpp with replFlag = Some true }
+    | a :: b :: rest when a = "-i"    -> helper rest { cpp with filePath = Some b }
+    | a :: b :: rest when a = "-o"    -> helper rest { cpp with outputPath = Some b }
+    | x :: rest ->
+      eprintfn $"Unknown flag: {x}"
+      helper rest cpp
   helper (Array.toList xs) mkCliProgramPartial
   |> fromCliProgramPartial
 
-
 let execCliProgram (cli : CliProgram) =
+  let host = CliHost() :> IHost
   match cli.replFlag, cli.filePath with
   | true, Some fp ->
     try
-      let st =
-        System.IO.File.ReadAllText fp
-        |> parse
-        |> Result.mapError fromParseError
-        |> Result.bind buildSymbolTable
-      match st with
-      | Ok st' -> repl st'
-      | Error err ->
-        eprintfn $"Failed to load repl with file content, due to error: {err}"
-        repl mkSymbolTable
+      match System.IO.File.ReadAllText fp |> parse with
+      | Ok program ->
+        match check program with
+        | Ok cp ->
+          match eval cp host with
+          | Ok ()   -> repl host
+          | Error e -> eprintfn $"Runtime error: {e}"; repl host
+        | Error e ->
+          eprintfn $"Semantic error: {e}"; repl host
+      | Error e ->
+        eprintfn $"Parse error: {e}"; repl host
       0
-    with
-      | err ->
-        eprintfn $"Exception: {err}"
-        1
+    with ex ->
+      eprintfn $"Exception: {ex}"; 1
   | true, _ ->
-    repl mkSymbolTable
+    repl host
     0
   | false, Some fp ->
     try
-      let st =
-        System.IO.File.ReadAllText fp
-        |> parse
-        |> Result.mapError fromParseError
-        |> Result.bind buildSymbolTable
-      match st with
-      | Ok st' ->
-        failwith "No interpreter"
-        0
-      | Error err ->
-        eprintfn $"Failed to load repl with file content, due to error: {err}"
-        1
-    with
-      | err ->
-        eprintfn $"Exception: {err}"
-        1
+      match System.IO.File.ReadAllText fp |> parse with
+      | Ok program ->
+        match check program with
+        | Ok cp ->
+          match eval cp host with
+          | Ok ()   -> 0
+          | Error e -> eprintfn $"Runtime error: {e}"; 1
+        | Error e ->
+          eprintfn $"Semantic error: {e}"; 1
+      | Error e ->
+        eprintfn $"Parse error: {e}"; 1
+    with ex ->
+      eprintfn $"Exception: {ex}"; 1
   | _, None ->
-    eprintfn "Usage: roblang <file>"
+    eprintfn "Usage: roblang [-i <file>] [--repl]"
     1
 
 [<EntryPoint>]
 let main argv =
-  let cli = mkCliProgram argv
-  execCliProgram cli
+  mkCliProgram argv |> execCliProgram
